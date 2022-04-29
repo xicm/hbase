@@ -156,10 +156,14 @@ function personality_modules
   # At a few points, hbase modules can run build, test, etc. in parallel
   # Let it happen. Means we'll use more CPU but should be for short bursts.
   # https://cwiki.apache.org/confluence/display/MAVEN/Parallel+builds+in+Maven+3
-  if [[ -n "${BUILD_THREAD}" ]]; then
-    extra="--threads=${BUILD_THREAD}"
+  if [[ "${testtype}" == mvnsite ]]; then
+    yetus_debug "Skip specifying --threads since maven-site-plugin does not support building in parallel."
   else
-    extra="--threads=2"
+    if [[ -n "${BUILD_THREAD}" ]]; then
+      extra="--threads=${BUILD_THREAD}"
+    else
+      extra="--threads=2"
+    fi
   fi
 
   # Set java.io.tmpdir to avoid exhausting the /tmp space
@@ -500,7 +504,7 @@ function shadedjars_rebuild
 
   local -a maven_args=('clean' 'verify' '-fae' '--batch-mode'
     '-pl' 'hbase-shaded/hbase-shaded-check-invariants' '-am'
-    '-Dtest=NoUnitTests' '-DHBasePatchProcess' '-Prelease'
+    '-DskipTests' '-DHBasePatchProcess' '-Prelease'
     '-Dmaven.javadoc.skip=true' '-Dcheckstyle.skip=true' '-Dspotbugs.skip=true')
   # If we have HADOOP_PROFILE specified and we're on branch-2.x, pass along
   # the hadoop.profile system property. Ensures that Hadoop2 and Hadoop3

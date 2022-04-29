@@ -82,14 +82,15 @@ public class ReplicationSourceShipper extends Thread {
     this.walGroupId = walGroupId;
     this.logQueue = logQueue;
     this.source = source;
-    this.sleepForRetries =
-        this.conf.getLong("replication.source.sleepforretries", 1000);    // 1 second
-    this.maxRetriesMultiplier =
-        this.conf.getInt("replication.source.maxretriesmultiplier", 300); // 5 minutes @ 1 sec per
+    // 1 second
+    this.sleepForRetries = this.conf.getLong("replication.source.sleepforretries", 1000);
+    // 5 minutes @ 1 sec per
+    this.maxRetriesMultiplier = this.conf.getInt("replication.source.maxretriesmultiplier", 300);
+    // 20 seconds
     this.getEntriesTimeout =
-        this.conf.getInt("replication.source.getEntries.timeout", DEFAULT_TIMEOUT); // 20 seconds
+      this.conf.getInt("replication.source.getEntries.timeout", DEFAULT_TIMEOUT);
     this.shipEditsTimeout = this.conf.getInt(HConstants.REPLICATION_SOURCE_SHIPEDITS_TIMEOUT,
-        HConstants.REPLICATION_SOURCE_SHIPEDITS_TIMEOUT_DFAULT);
+      HConstants.REPLICATION_SOURCE_SHIPEDITS_TIMEOUT_DFAULT);
   }
 
   @Override
@@ -229,6 +230,7 @@ public class ReplicationSourceShipper extends Thread {
         }
         break;
       } catch (Exception ex) {
+        source.getSourceMetrics().incrementFailedBatches();
         LOG.warn("{} threw unknown exception:",
           source.getReplicationEndpoint().getClass().getName(), ex);
         if (sleepForRetries("ReplicationEndpoint threw exception", sleepForRetries, sleepMultiplier,

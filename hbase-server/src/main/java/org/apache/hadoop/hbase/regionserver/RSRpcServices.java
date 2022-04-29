@@ -1938,8 +1938,9 @@ public class RSRpcServices extends HBaseRpcServicesBase<HRegionServer>
         throw new ServiceException(ie);
       }
       // We are assigning meta, wait a little for regionserver to finish initialization.
-      int timeout = server.getConfiguration().getInt(HConstants.HBASE_RPC_TIMEOUT_KEY,
-        HConstants.DEFAULT_HBASE_RPC_TIMEOUT) >> 2; // Quarter of RPC timeout
+      // Default to quarter of RPC timeout
+      int timeout = server.getConfiguration()
+        .getInt(HConstants.HBASE_RPC_TIMEOUT_KEY, HConstants.DEFAULT_HBASE_RPC_TIMEOUT) >> 2;
       long endTime = EnvironmentEdgeManager.currentTime() + timeout;
       synchronized (server.online) {
         try {
@@ -3202,8 +3203,16 @@ public class RSRpcServices extends HBaseRpcServicesBase<HRegionServer>
     RegionScannerImpl coreScanner = region.getScanner(scan);
     Shipper shipper = coreScanner;
     RegionScanner scanner = coreScanner;
-    if (region.getCoprocessorHost() != null) {
-      scanner = region.getCoprocessorHost().postScannerOpen(scan, scanner);
+    try {
+      if (region.getCoprocessorHost() != null) {
+        scanner = region.getCoprocessorHost().postScannerOpen(scan, scanner);
+      }
+    } catch (Exception e) {
+      // Although region coprocessor is for advanced users and they should take care of the
+      // implementation to not damage the HBase system, closing the scanner on exception here does
+      // not have any bad side effect, so let's do it
+      scanner.close();
+      throw e;
     }
     long scannerId = scannerIdGenerator.generateNewScannerId();
     builder.setScannerId(scannerId);
